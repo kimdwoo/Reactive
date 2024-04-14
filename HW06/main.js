@@ -59,13 +59,13 @@ class HeartObject {
 var heart = []; // 하트 객체를 담을 배열
 
 function createRandomHeart(x, y) {
-    var radius = Math.random() * 20 + 10; // 반지름은 10에서 30 사이의 무작위 값
+    var radius = Math.random() * 20 + 10; // 반지름은 10에서 30 사이의 랜덤 값
     var positionX = x;
     var positionY = y;
-    var velocityX = (Math.random() - 0.5) * 5; // X축 속도 무작위 설정 (다양한 속도)
-    var velocityY = (Math.random() - 0.5) * 5; // Y축 속도 무작위 설정 (다양한 속도)
-    var rotationSpeed = Math.random() * 10; // 회전 속도 무작위 설정 (다양한 회전 속도)
-    var color = getRandomColor(); // 무작위 색상 선택
+    var velocityX = (Math.random() - 0.5) * 5; // X축 속도 랜덤 설정 
+    var velocityY = (Math.random() - 0.5) * 5; // Y축 속도 랜덤 설정 
+    var rotationSpeed = Math.random() * 10; // 회전 속도 랜덤 설정 (다양한 회전 속도)
+    var color = getRandomColor(); // 색상도 랜덤
     var newHeart = new HeartObject(radius, positionX, positionY, velocityX, velocityY, rotationSpeed, color);
     heart.push(newHeart); // 배열에 하트 추가
 }
@@ -90,7 +90,6 @@ function render() {
     requestAnimationFrame(render); // 다음 애니메이션 프레임 요청
 }
 
-// 마우스 이벤트 리스너 추가
 canvas.addEventListener('mousemove', function(event) {
     var mouseX = event.clientX - canvas.getBoundingClientRect().left;
     var mouseY = event.clientY - canvas.getBoundingClientRect().top;
