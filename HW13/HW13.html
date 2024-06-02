@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Triangle</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let triangle = {
+            x1: 150, y1: 150,
+            x2: 350, y2: 150,
+            x3: 250, y3: 350,
+            color: 'purple'
+        };
+
+        // 회전 각도
+        let angle = 0;
+
+        // 삼각형을 그림
+        function drawTriangle(triangle, angle) {
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.save();
+            ctx.translate(250, 250);
+            ctx.rotate(angle);
+            ctx.translate(-250, -250);
+
+            ctx.beginPath();
+            ctx.moveTo(triangle.x1, triangle.y1);
+            ctx.lineTo(triangle.x2, triangle.y2);
+            ctx.lineTo(triangle.x3, triangle.y3);
+            ctx.closePath();
+            ctx.fillStyle = triangle.color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 삼각형 내부 클릭 여부 확인
+        function isPointInTriangle(px, py, t) {
+            const {x1, y1, x2, y2, x3, y3} = t;
+
+            const d1 = sign(px, py, x1, y1, x2, y2);
+            const d2 = sign(px, py, x2, y2, x3, y3);
+            const d3 = sign(px, py, x3, y3, x1, y1);
+
+            const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+            const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+            return !(hasNeg && hasPos);
+        }
+
+        function sign(px, py, x1, y1, x2, y2) {
+            return (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
+        }
+
+        // 캔버스 클릭 이벤트 핸들러
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // 역변환하여 삼각형의 원래 위치로 좌표 변환
+            const sin = Math.sin(-angle);
+            const cos = Math.cos(-angle);
+            const tx = cos * (x - 250) - sin * (y - 250) + 250;
+            const ty = sin * (x - 250) + cos * (y - 250) + 250;
+
+            if (isPointInTriangle(tx, ty, triangle)) {
+                triangle.color = 'red';
+            } else {
+                triangle.color = 'purple';
+            }
+
+            drawTriangle(triangle, angle);
+        });
+        function rotateTriangle() {
+            angle += Math.PI / 180; 
+            drawTriangle(triangle, angle);
+            requestAnimationFrame(rotateTriangle);
+        }
+        drawTriangle(triangle, angle);
+        rotateTriangle();
+    </script>
+</body>
+</html>
