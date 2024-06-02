@@ -14,7 +14,7 @@ body {
     height: 800px; 
     overflow: hidden; 
     box-sizing: border-box;
-    background-color: rgb(72, 153, 242); /* 여기에서 배경색을 지정하고 있습니다 */
+    background-color: rgb(72, 153, 242); 
 }
 canvas {
     background-color: #c8c7c7;

@@ -3,12 +3,16 @@ var ctx = canvas.getContext('2d');
 var starX, starY;
 var playerX = canvas.width / 2;
 var playerY = canvas.height / 2;
-var playerSpeed = 2;
+var playerSpeed = 3;
 var playerAngle = 0;
 var rotationSpeed = 0.1;
 var monsters = [];
-var starspeed = 2; 
+var starspeed = 3;
 var heart = 3;
+var shieldActive = false;
+var shieldRadius = 0;
+var shieldTime = 2000; // 쉴드 지속 시간 (ms)
+var shieldGrowthRate = 0.4; // 쉴드 성장 속도
 var animationId;
 var intervalId;
 var gameEnd = false;
@@ -60,7 +64,7 @@ function drawStar(x, y) {
 function drawHeart(x, y, angle) {
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(angle); 
+    ctx.rotate(angle);
     ctx.beginPath();
     ctx.moveTo(0, -30);
     for (var i = 0; i < 360; i++) {
@@ -69,12 +73,30 @@ function drawHeart(x, y, angle) {
         var py = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
         ctx.lineTo(px, py);
     }
-    ctx.fillStyle = 'rgb(192, 0, 0)'; 
-    ctx.strokeStyle = 'black'; 
-    ctx.lineWidth = 2; 
+    ctx.fillStyle = 'rgb(192, 0, 0)';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
     ctx.fill();
     ctx.stroke();
-    ctx.restore(); 
+    ctx.restore();
+}
+
+function drawShield(x, y, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle)
+    ctx.beginPath();
+    ctx.moveTo(0, -30);
+    for (var i = 0; i < 360; i++) {
+        var t = i * Math.PI / 180;
+        var px = (16 + shieldRadius) * Math.pow(Math.sin(t), 3);
+        var py = -((13 + shieldRadius) * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
 }
 
 function clearCanvas() {
@@ -95,6 +117,10 @@ function update() {
     var offsetY = canvas.height / 2 - playerY;
     ctx.translate(offsetX, offsetY);
     drawHeart(playerX, playerY, playerAngle);
+    if (shieldActive) {
+        drawShield(playerX, playerY, playerAngle);
+        shieldRadius += shieldGrowthRate;
+    }
     drawStar(starX, starY);
     drawMonsters();
     ctx.restore();
@@ -112,18 +138,7 @@ function autoRotate() {
 
 var startButton = document.getElementById('btn');
 startButton.addEventListener('click', function() {
-    startButton.style.display = 'none'; 
-    document.getElementById('total').style.border = 'none'; 
-    document.getElementById('canvastext').classList.add('hidden'); 
-    var monsterCount = Math.floor(Math.random() * 11) + 10; // 초기 몬스터 수 증가
-    for (var i = 0; i < monsterCount; i++) {
-        createMonster();
-    }
-    drawRandomStar(); 
-    autoRotate();
-    intervalId = setInterval(function() {
-        createMonster();
-    }, 500); // 몬스터 생성 간격을 500ms로 줄임
+    startGame();
 });
 
 function drawRandomStar() {
@@ -136,7 +151,7 @@ function createMonster() {
     var angle = Math.atan2(playerY - canvas.height / 2, playerX - canvas.width / 2);
     var startX = Math.random() < 0.5 ? -100 : canvas.width + 100;
     var startY = Math.random() * canvas.height;
-    var speed = Math.random() * 3 + 1;
+    var speed = Math.random() * 3 + 0.5;
     var monster = {
         x: startX,
         y: startY,
@@ -144,7 +159,8 @@ function createMonster() {
         color: getRandomColor(),
         speed: speed,
         speedX: Math.cos(angle) * speed,
-        speedY: Math.sin(angle) * speed
+        speedY: Math.sin(angle) * speed,
+        lifeTime: 3000 
     };
     monsters.push(monster);
 }
@@ -152,19 +168,29 @@ function createMonster() {
 function drawMonsters() {
     for (var i = 0; i < monsters.length; i++) {
         var monster = monsters[i];
-        monster.x += monster.speedX; 
-        monster.y += monster.speedY; 
+        var angle = Math.atan2(playerY - monster.y, playerX - monster.x);
+        monster.speedX = Math.cos(angle) * monster.speed;
+        monster.speedY = Math.sin(angle) * monster.speed;
+        monster.x += monster.speedX;
+        monster.y += monster.speedY;
         drawCircle(monster.x, monster.y, monster.radius, monster.color);
         if (Colliding(monster)) {
-            monsters.splice(i, 1);
-            i--;
-            heart--;
-            if (heart <= 0) {
-                endGame();
+            if (shieldActive) {
+                monsters.splice(i, 1);
+                i--;
+            } else {
+                monsters.splice(i, 1);
+                i--;
+                heart--;
+                if (heart <= 0) {
+                    endGame();
+                }
             }
-        } else if (monster.x < -200 || monster.x > canvas.width + 200 || monster.y < -200 || monster.y > canvas.height + 200) {
+        } else if (monster.lifeTime <= 0) {
             monsters.splice(i, 1);
             i--;
+        } else {
+            monster.lifeTime -= 16.67; 
         }
     }
 }
@@ -173,20 +199,23 @@ function Colliding(monster) {
     var dx = playerX - monster.x;
     var dy = playerY - monster.y;
     var distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < monster.radius + 30;
+    return distance < monster.radius + 30 + (shieldActive ? shieldRadius : 0);
 }
 
 function CollisionStar() {
     var dx = playerX - starX;
     var dy = playerY - starY;
     var distance = Math.sqrt(dx * dx + dy * dy);
-    var playerRadius = 30; 
-    var starRadius = 40; 
+    var playerRadius = 30;
+    var starRadius = 40;
 
     if (distance < playerRadius + starRadius) {
-        console.log("닿았음");
-        heart++;
-        drawRandomStar(); 
+        shieldActive = true;
+        shieldRadius = 0;
+        setTimeout(function() {
+            shieldActive = false;
+        }, shieldTime);
+        drawRandomStar();
     }
 }
 
@@ -202,7 +231,7 @@ function getRandomColor() {
 function drawCircle(x, y, radius, color) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = color; 
+    ctx.fillStyle = color;
     ctx.fill();
     ctx.closePath();
 }
@@ -213,22 +242,24 @@ function endGame() {
     cancelAnimationFrame(animationId);
     clearInterval(intervalId);
     startButton.style.display = 'block';
-    document.getElementById('canvasText').getElementsByTagName('p')[0].textContent = "힘듭니다.";
-    document.getElementById('canvasText').getElementsByTagName('p')[1].textContent = '뭔지모르겠습니다.';
-    document.getElementById('canvasText').classList.remove('hidden');
-    document.getElementById('canvasContainer').style.border = '1px solid rgb(0, 0, 0)';
-    document.getElementById('canvasContainer').style.backgroundColor = 'rgb(255, 0, 0)';
-    document.getElementById('canvasText').style.color = 'rgb(255, 255, 255)';
+    document.getElementById('canvastext').getElementsByTagName('p')[0].textContent = "힘듭니다.";
+    document.getElementById('canvastext').getElementsByTagName('p')[1].textContent = '뭔지모르겠습니다.';
+    document.getElementById('canvastext').classList.remove('hidden');
+    document.getElementById('total').style.border = '1px solid rgb(0, 0, 0)';
+    document.getElementById('total').style.backgroundColor = 'rgb(255, 0, 0)';
+    document.getElementById('canvastext').style.color = 'rgb(255, 255, 255)';
     monsters = [];
-    heart = 3;
-    startButton.addEventListener('click', startGame);
 }
 
 function startGame() {
+    clearCanvas();
     gameEnd = false;
+    heart = 3;
+    playerX = canvas.width / 2;
+    playerY = canvas.height / 2;
     startButton.style.display = 'none';
-    document.getElementById('canvasText').classList.add('hidden');
-    var monsterCount = Math.floor(Math.random() * 11) + 10; 
+    document.getElementById('canvastext').classList.add('hidden');
+    var monsterCount = Math.floor(Math.random() * 11) + 5;
     for (var i = 0; i < monsterCount; i++) {
         createMonster();
     }
@@ -236,9 +267,9 @@ function startGame() {
     autoRotate();
     intervalId = setInterval(function() {
         createMonster();
-    }, 500); 
-    document.getElementById('canvasContainer').style.border = '1px solid rgb(255, 255, 255)';
-    document.getElementById('canvasContainer').style.backgroundColor = 'rgb(72, 153, 242)';
-    document.getElementById('canvasText').style.color = 'white';
+    }, 500);
+    document.getElementById('total').style.border = '1px solid rgb(255, 255, 255)';
+    document.getElementById('total').style.backgroundColor = 'rgb(72, 153, 242)';
+    document.getElementById('canvastext').style.color = 'white';
     startButton.removeEventListener('click', startGame);
 }
