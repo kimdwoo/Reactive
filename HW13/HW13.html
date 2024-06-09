@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Canvas Triangle</title>
+    <title>삼각형</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -23,16 +23,13 @@
             color: 'purple'
         };
 
-        // 회전 각도
         let angle = 0;
 
-        // 삼각형을 그림
         function drawTriangle(triangle, angle) {
             ctx.clearRect(0, 0, width, height);
 
             ctx.save();
             ctx.translate(250, 250);
-            ctx.rotate(angle);
             ctx.translate(-250, -250);
 
             ctx.beginPath();
@@ -47,21 +44,18 @@
 
         // 삼각형 내부 클릭 여부 확인
         function isPointInTriangle(px, py, t) {
-            const {x1, y1, x2, y2, x3, y3} = t;
+    const {x1, y1, x2, y2, x3, y3} = t;
 
-            const d1 = sign(px, py, x1, y1, x2, y2);
-            const d2 = sign(px, py, x2, y2, x3, y3);
-            const d3 = sign(px, py, x3, y3, x1, y1);
+    const line1 = (x, y) => (y2 - y1) * x - (x2 - x1) * y - x1 * (y2 - y1) + y1 * (x2 - x1);
+    const line2 = (x, y) => (y3 - y2) * x - (x3 - x2) * y - x2 * (y3 - y2) + y2 * (x3 - x2);
+    const line3 = (x, y) => (y1 - y3) * x - (x1 - x3) * y - x3 * (y1 - y3) + y3 * (x1 - x3);
 
-            const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-            const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+    const side1 = Math.sign(line1(px, py));
+    const side2 = Math.sign(line2(px, py));
+    const side3 = Math.sign(line3(px, py));
 
-            return !(hasNeg && hasPos);
-        }
-
-        function sign(px, py, x1, y1, x2, y2) {
-            return (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
-        }
+    return side1 === side2 && side2 === side3;
+}
 
         // 캔버스 클릭 이벤트 핸들러
         canvas.addEventListener('click', function(event) {
